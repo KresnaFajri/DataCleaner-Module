@@ -22,12 +22,15 @@ class FeatureGenerator:
         store_name_lower = store_name.lower().strip()
         for brand in brand_list:
             brand_lower = brand.lower().strip()
-            if brand_lower in store_name_lower or 'official' in store_name_lower:
-                return "Official Store"
-        # kalau tidak ada yang cocok, baru return "Reseller"
-            return "Reseller"
+            if brand_lower in store_name_lower:
+                if 'official' in store_name_lower:
+                    return "Official Store"
+                else:
+                # kalau tidak ada yang cocok, baru return "Reseller"
+                    return "Reseller"
+        return "Reseller"
     
-    def DataDistributions(self,df,column_name:str,bin_method:str,column_price_name:str,bins:int = None) -> pd.DataFrame:
+    def DataDistributions(self,df,column_name:str,bin_method:str,column_target_name:str,bins:int = None) -> pd.DataFrame:
         """
         Buat kolom berisi rentang (bin) harga untuk analisis distribusi penjualan brand.
         
@@ -38,21 +41,21 @@ class FeatureGenerator:
             - DataFrame yang sudah ada di memori.
         column_name : str
             Nama kolom baru yang akan menyimpan label rentang harga.
-        column_price_name : str
+        column_target_name : str
             Nama kolom berisi harga di DataFrame.
         
         Returns
         -------
         pd.DataFrame
             Salinan DataFrame dengan kolom rentang harga (`column_name`) yang baru. """
-        price_series = df[column_price_name].dropna()
+        price_series = df[column_target_name].dropna()
         #search for local maxima and minima
         local_max = price_series.max()
         local_min = price_series.min()
 
         #binning method
         if bin_method == 'sturges':
-            k_bins = int(1+3.3* np.log(len(df[column_price_name])))
+            k_bins = int(1+3.3* np.log(len(df[column_target_name])))
             bin_edges = np.linspace(local_min,local_max, k_bins + 1)
 
         elif bin_method == 'quantile':
@@ -66,11 +69,11 @@ class FeatureGenerator:
             raise ValueError("Unknown Binning Method")
         
         if len(bin_edges)<2 or np.any(np.diff(bin_edges)==0):
-            df[column_name] = df[column_price_name]
+            df[column_name] = df[column_target_name]
             return df
         
             #cutting price into segmented bins
-        df[column_name] = pd.cut(df[column_price_name], bins = bin_edges, include_lowest = True).apply(lambda iv: f"{iv.left:,.0f}-{iv.right:,.0f}")
+        df[column_name] = pd.cut(df[column_target_name], bins = bin_edges, include_lowest = True).apply(lambda iv: f"{iv.left:,.0f}-{iv.right:,.0f}")
 
         return df
     def outlier_detector_IQR(self,df, column):
@@ -399,7 +402,7 @@ class FeatureGenerator:
     class DataViz():
         def __init__(self):
             pass
-        def plot_spider(self,data, category,columns=None):
+        def plot_spider(self,data, category,columns=None,**kwargs):
             """
             category:type-str. Category must exist in data as an Index.
             data:type->DataFrame. Amount of data that will be inputted into the spider chart

@@ -3,6 +3,7 @@ import re
 import emoji
 import string
 import numpy as np
+from datetime import datetime
 from rapidfuzz import process,fuzz
 
 class DataCleaner:
@@ -15,6 +16,41 @@ class DataCleaner:
         """
         return ''.join(re.findall(r'[\d\.]+', str(text)))
     
+    def DetectNumericDelimiter(self,series:pd.Series) -> str | None:
+        # Here is to check whether data using "." as thousand delimiter or "," as thousand delimiter
+        s = series.dropna().astype(str)
+
+        if s.str.contains(',',regex = False).any():
+            return ","
+        
+        elif s.str.contains(".", regex = False).any():
+            return "."
+        
+        return None
+    
+    def ParseMetadata(self,filename:str):
+
+        # Matching the filename pattern "datapinter_shopee_riset_produk_[QUERY WORDS]_[QUERY DATE]_[TIME]"
+        # Capture first pattern occurence for Query Keywords
+        # Capture second pattern occurence for Query Date
+        #Split all data tokens from "_"
+
+        pattern = r"datapinter_shopee_riset_produk_(.+)_(\d{8})_\d{6}"
+        match = re.search(pattern,filename)
+
+        if not match:
+            raise ValueError("Filename tidak sesuai pattern RegEx")
+        
+        keywords_raw = match.group(1)
+
+        #Capture Group 2
+        query_date = datetime.strptime(match.group(2),'%Y%m%d')
+
+
+        query_datasource = "shopee"
+
+        return query_datasource, keywords_raw, query_date
+
     def substring_remover(self,text,substrings:list,substitute_with:str):
         """
         Menghapus karakter yang diinginkan dari sebuah teks
